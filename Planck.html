@@ -1,0 +1,307 @@
+<html>
+  <head>
+    <title>Project Novatro by Ekofi</title>
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/planck-js@0.2/dist/planck-with-testbed.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/synaptic/1.1.4/synaptic.js"></script>
+
+    <script>
+      class NNetwork {
+        constructor() {
+          var inputLayer = new synaptic.Layer(1);
+          var hiddenLayer1 = new synaptic.Layer(5);
+          /*           var hiddenLayer2 = new synaptic.Layer(5); */
+          var outputLayer = new synaptic.Layer(2);
+
+          inputLayer.project(hiddenLayer1);
+          hiddenLayer1.project(outputLayer);
+          /*           hiddenLayer2.project(outputLayer); */
+
+          this.nn = new synaptic.Network({
+            input: inputLayer,
+            hidden: [hiddenLayer1 /* hiddenLayer2 */],
+            output: outputLayer
+          });
+        }
+      }
+      planck.testbed("5humans", function(testbed) {
+        var pl = planck,
+          Vec2 = pl.Vec2;
+        var world = new pl.World(Vec2(0, 0));
+
+        const MyNetwork = new NNetwork();
+
+        isInfected = 0;
+
+        // Ground
+        var ground = world.createBody();
+        ground.createFixture(
+          pl.Edge(Vec2(-20.0, -10.0), Vec2(20.0, -10.0)),
+          0.0
+        );
+        var ground1 = world.createBody();
+        ground1.createFixture(
+          pl.Edge(Vec2(20.0, 30.0), Vec2(20.0, -10.0)),
+          0.0
+        );
+        var ground2 = world.createBody();
+        ground2.createFixture(
+          pl.Edge(Vec2(-20.0, 30.0), Vec2(-20.0, -10.0)),
+          0.0
+        );
+        var ground3 = world.createBody();
+        ground3.createFixture(
+          pl.Edge(Vec2(-20.0, 30.0), Vec2(20.0, 30.0)),
+          0.0
+        );
+
+        var human = world.createBody({
+          type: "dynamic",
+          angularDamping: 3.0,
+          linearDamping: 4.0,
+          position: Vec2(0.0, -2.0),
+          angle: Math.PI,
+          allowSleep: false
+        });
+        var box = pl.Box(0.5, 0.5);
+
+        boxFixture = human.createFixture(box, 2.0);
+
+        sensor = human
+          .createFixture({
+            shape: pl.Circle(Vec2(0.0, 0.0), 2.0),
+            isSensor: true
+          })
+          .setUserData(this);
+
+        sensor1 = human.createFixture({
+          shape: pl.Circle(Vec2(0.0, 0.0), 5.0),
+          isSensor: true
+        });
+
+        /* var human2 = world.createBody({
+          type: "dynamic",
+          angularDamping: 3.0,
+          linearDamping: 4.0,
+          position: Vec2(16.0, 14.0),
+          angle: -120,
+          allowSleep: false
+        });
+        var box = pl.Box(0.5, 0.5);
+
+        boxFixture2 = human2.createFixture(box, 2.0);
+
+        sensor2 = human2
+          .createFixture({
+            shape: pl.Circle(Vec2(0.0, 0.0), 2.0),
+            isSensor: true
+          })
+          .setUserData(this);
+
+        sensor2 = human2.createFixture({
+          shape: pl.Circle(Vec2(0.0, 0.0), 5.0),
+          isSensor: true
+        }); */
+
+        testbed.step = function() {
+          if (testbed.activeKeys.right && !testbed.activeKeys.left) {
+            /* human.applyAngularImpulse(-0.2, true); */
+            infected.applyAngularImpulse(-0.1, true);
+          } else if (testbed.activeKeys.left && !testbed.activeKeys.right) {
+            /* human.applyAngularImpulse(+0.2, true); */
+            infected.applyAngularImpulse(+0.1, true);
+          }
+
+          /* if (testbed.activeKeys.h && !testbed.activeKeys.left) {
+            infected.applyAngularImpulse(-0.2, true);
+          } else if (testbed.activeKeys.f && !testbed.activeKeys.right) {
+            infected.applyAngularImpulse(+0.2, true);
+          } */
+
+          /* if (testbed.activeKeys.up) {
+            var f = human.getWorldVector(Vec2(0.0, -1.0));
+            var p = human.getWorldPoint(Vec2(0.0, 2.0));
+            human.applyLinearImpulse(f, p, true);
+          } */
+
+          var f = human.getWorldVector(Vec2(0.0, -0.5));
+          var p = human.getWorldPoint(Vec2(0.0, 2.0));
+          human.applyLinearImpulse(f, p, true);
+
+          /* var f = human2.getWorldVector(Vec2(0.0, -0.5));
+          var p = human2.getWorldPoint(Vec2(0.0, 2.0));
+          human2.applyLinearImpulse(f, p, true); */
+
+          var f = infected.getWorldVector(Vec2(0.0, -0.5));
+          var p = infected.getWorldPoint(Vec2(0.0, 2.0));
+          infected.applyLinearImpulse(f, p, true);
+
+          if (window.aa === undefined) {
+            window.aa = false;
+          }
+
+          if (window.bb === undefined) {
+            window.bb = false;
+          }
+
+          const [left, right] = MyNetwork.nn.activate([window.bb]);
+
+          /* const [left2, right2] = MyNetwork.nn.activate([window.bb]); */
+
+          console.log(left, right);
+
+          if (Math.random() < 0.7) {
+            if (right > 0.5) {
+              human.applyAngularImpulse(-0.05, true);
+              /*  human2.applyAngularImpulse(-0.05, true); */
+            }
+
+            if (right > 0.7) {
+              human.applyAngularImpulse(-0.1, true);
+              /* human2.applyAngularImpulse(-0.1, true); */
+            }
+
+            if (left > 0.5) {
+              human.applyAngularImpulse(+0.05, true);
+              /* human2.applyAngularImpulse(+0.05, true); */
+            }
+
+            if (left > 0.7) {
+              human.applyAngularImpulse(+0.1, true);
+              /* human2.applyAngularImpulse(+0.1, true); */
+            }
+          }
+
+          /* if (up > 0.5) {
+            var f = human.getWorldVector(Vec2(0.0, -1.0));
+            var p = human.getWorldPoint(Vec2(0.0, 2.0));
+            human.applyLinearImpulse(f, p, true);
+          } */
+
+          if (window.aa != false) {
+            console.log("öldü");
+            human.setTransform(Vec2(0.0, -2.0), 3.14);
+            /* human2.setTransform(Vec2(16.0, 14.0), -120); */
+            infected.setTransform(Vec2(0.0, 16.0), 270);
+            /* human.setTransform(0, 0, 0); */
+            /* human.setType(BodyType.DynamicBody); */
+            MyNetwork.nn.propagate(0.3, [0.3, 0.3]);
+          }
+          if (window.aa != true) {
+            /* MyNetwork.nn.propagate(0.00005, [1, 1]); */
+            /* MyNetwork.nn.propagate(0.003, [right, left]); */
+            /* WARN */
+          }
+
+          if ((window.bb = false)) {
+            MyNetwork.nn.propagate(0.3, [0.5, 0.5]);
+          }
+
+          if ((window.bb = true)) {
+            MyNetwork.nn.propagate(0.3, [1 - left, right]);
+          }
+
+          /* console.log(window.bb); */
+        };
+
+        var infected = world.createBody({
+          type: "dynamic",
+          angularDamping: 3.0,
+          linearDamping: 4.0,
+          position: Vec2(0.0, 16.0),
+          angle: 270 /* Math.PI */,
+          allowSleep: false
+        });
+
+        var box = pl.Box(0.5, 0.5);
+
+        var boxfix = infected.createFixture(box, 2.0);
+
+        boxfix.render = {
+          fill: "#FA8072",
+          stroke: "black"
+        };
+
+        /* boxfix.render = {
+                         fill: "red",
+                         stroke: "black"
+                       }; */
+
+        infectedsensor = infected
+          .createFixture({
+            shape: pl.Circle(Vec2(0.0, 0.0), 2.0),
+            isSensor: true
+          })
+          .setUserData(this);
+
+        infectedsensor1 = infected.createFixture({
+          shape: pl.Circle(Vec2(0.0, 0.0), 5.0),
+          isSensor: true
+        });
+
+        var points = [];
+
+        world.on("begin-contact", function(contact) {
+          var fA = contact.getFixtureA();
+          var bA = fA.getBody();
+          userData1 = fA.getUserData();
+
+          var fB = contact.getFixtureB();
+          var bB = fB.getBody();
+
+          fB.getUserData();
+          userData2 = fA.getUserData();
+
+          userData3 = fB.getUserData();
+
+          if (userData1 && userData2) {
+            console.log("touching");
+            window.bb = true;
+          }
+
+          if (userData1 && userData3) {
+            window.isInfected = 1;
+            human.render = {
+              fill: "#FA8072",
+              stroke: "black"
+            };
+            window.aa = true;
+          }
+        });
+
+        world.on("end-contact", function(contact) {
+          var fA = contact.getFixtureA();
+          var bA = fA.getBody();
+          userData1 = fA.getUserData();
+
+          var fB = contact.getFixtureB();
+          var bB = fB.getBody();
+
+          fB.getUserData();
+          userData2 = fA.getUserData();
+
+          userData3 = fB.getUserData();
+
+          if (userData1 && userData2) {
+            console.log("isn't touching");
+            window.bb = false;
+          }
+
+          if (userData1 && userData3) {
+            window.isInfected = 1;
+            human.render = {
+              fill: "#FA8072",
+              stroke: "black"
+            };
+            window.aa = false;
+          }
+        });
+
+        testbed.info("Coronavirus - Red: Infected");
+
+        return world;
+      });
+    </script>
+  </body>
+</html>
